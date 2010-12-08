@@ -17,8 +17,6 @@ function removeHooks(win) {
 }
 
 function startup() {
-	TabHistory.log("in startup");
-	
 	let browserWindows = Services.wm.getEnumerator("navigator:browser");
 	
 	while (browserWindows.hasMoreElements()) {
@@ -44,13 +42,9 @@ function startup() {
 	Services.ww.registerNotification(windowWatcher);
 	
 	unloaders.push(function () { Services.ww.unregisterNotification(windowWatcher); });
-	
-	TabHistory.log("out of startup");
 }
 
 function shutdown() {
-	TabHistory.log("in shutdown");
-	
 	unloaders.forEach(function (unload) { unload(); });
 	
 	let browserWindows = Services.wm.getEnumerator("navigator:browser");
@@ -58,36 +52,24 @@ function shutdown() {
 	while (browserWindows.hasMoreElements()) {
 		removeHooks(browserWindows.getNext());
 	}
-	
-	TabHistory.log("out of shutdown");
 }
 
 var TabHistory = {
 	load : function (win) {
-		TabHistory.log("in load");
-		
 		win.tabHistorySelectionHistory = [null, null];
 		
 		win.gBrowser.tabContainer.addEventListener("TabSelect", TabHistory.tabSelect, false);
 		win.gBrowser.tabContainer.addEventListener("TabOpen", TabHistory.tabOpen, false);
-		
-		TabHistory.log("out of load");
 	},
 	
 	unload : function (win) {
-		TabHistory.log("in unload");
-		
 		delete win.tabHistorySelectionHistory;
 		
 		win.gBrowser.tabContainer.removeEventListener("TabSelect", TabHistory.tabSelect, false);
-		win.gBrowser.tabContainer.removeEventListener("TabOpen", TabHistory.tabOpen, true);
-		
-		TabHistory.log("out of unload");		
+		win.gBrowser.tabContainer.removeEventListener("TabOpen", TabHistory.tabOpen, false);
 	},
 	
 	tabOpen : function (evt) {
-		TabHistory.log("in tabOpen");
-		
 		var tab = evt.target;
 		var win = tab.ownerDocument.defaultView;
 		
@@ -97,47 +79,32 @@ var TabHistory = {
 		}
 		else {
 			if (!tab.selected) {
-				TabHistory.log("Background tab");
-			
 				// The new tab was opened in the background, meaning the current tab is definitely the parent.
 				// Unless the new tab comes from clicking on a bookmark and having bookmarks open in the background...
 				TabHistory.copyHistory(win, win.gBrowser.selectedTab, tab);
 			}
 			else {
-				TabHistory.log("Foreground tab");
-			
 				if (tab == win.tabHistorySelectionHistory[0]) {
-					TabHistory.log("Already selected");
-				
+					// The tab is already selected.
 					TabHistory.copyHistory(win.tabHistorySelectionHistory[1], tab);
 				}
 				else if (win.tabHistorySelectionHistory[0]) {
-					TabHistory.log("Not yet selected");
-				
 					TabHistory.copyHistory(win.tabHistorySelectionHistory[0], tab);
 				}
 			}
 		}
-		
-		TabHistory.log("out of tabOpen");
 	},
 	
 	tabSelect : function (event) {
-		TabHistory.log("in tabSelect");
-		
 		var tab = event.target;
 		
 		var win = tab.ownerDocument.defaultView;
 		
 		win.tabHistorySelectionHistory[1] = win.tabHistorySelectionHistory[0];
 		win.tabHistorySelectionHistory[0] = tab;
-		
-		TabHistory.log("out of tabSelect");
 	},
 	
 	copyHistory : function (win, parentTab, childTab) {
-		TabHistory.log("in copyHistory");
-		
 		var parentHistory = win.gBrowser.getBrowserForTab(parentTab).sessionHistory;
 		var childHistory = win.gBrowser.getBrowserForTab(childTab).sessionHistory;
 		
@@ -149,8 +116,6 @@ var TabHistory = {
 				childHistory.addEntry(parentHistory.getEntryAtIndex(i, false), true);
 			}
 		}
-		
-		TabHistory.log("out of copyHistory");
 	},
 	
 	log : function (m) {
