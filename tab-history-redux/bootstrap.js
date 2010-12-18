@@ -3,7 +3,7 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 let unloaders = [];
 
 function addHooks(win) {
-	TabHistory.load(win);
+	TAB_HISTORY_REDUX.load(win);
 	
 	win.addEventListener("unload", function () {
 		win.removeEventListener("unload", arguments.callee, false);
@@ -13,7 +13,7 @@ function addHooks(win) {
 }
 
 function removeHooks(win) {
-	TabHistory.unload(win);
+	TAB_HISTORY_REDUX.unload(win);
 }
 
 function startup() {
@@ -54,19 +54,19 @@ function shutdown() {
 	}
 }
 
-var TabHistory = {
+var TAB_HISTORY_REDUX = {
 	load : function (win) {
 		win.tabHistorySelectionHistory = [null, null];
 		
-		win.gBrowser.tabContainer.addEventListener("TabSelect", TabHistory.tabSelect, false);
-		win.gBrowser.tabContainer.addEventListener("TabOpen", TabHistory.tabOpen, false);
+		win.gBrowser.tabContainer.addEventListener("TabSelect", TAB_HISTORY_REDUX.tabSelect, false);
+		win.gBrowser.tabContainer.addEventListener("TabOpen", TAB_HISTORY_REDUX.tabOpen, false);
 	},
 	
 	unload : function (win) {
 		delete win.tabHistorySelectionHistory;
 		
-		win.gBrowser.tabContainer.removeEventListener("TabSelect", TabHistory.tabSelect, false);
-		win.gBrowser.tabContainer.removeEventListener("TabOpen", TabHistory.tabOpen, false);
+		win.gBrowser.tabContainer.removeEventListener("TabSelect", TAB_HISTORY_REDUX.tabSelect, false);
+		win.gBrowser.tabContainer.removeEventListener("TabOpen", TAB_HISTORY_REDUX.tabOpen, false);
 	},
 	
 	tabOpen : function (evt) {
@@ -81,15 +81,15 @@ var TabHistory = {
 			if (!tab.selected) {
 				// The new tab was opened in the background, meaning the current tab is definitely the parent.
 				// Unless the new tab comes from clicking on a bookmark and having bookmarks open in the background...
-				TabHistory.copyHistory(win, win.gBrowser.selectedTab, tab);
+				TAB_HISTORY_REDUX.copyHistory(win, win.gBrowser.selectedTab, tab);
 			}
 			else {
 				if (tab == win.tabHistorySelectionHistory[0]) {
 					// The tab is already selected.
-					TabHistory.copyHistory(win.tabHistorySelectionHistory[1], tab);
+					TAB_HISTORY_REDUX.copyHistory(win.tabHistorySelectionHistory[1], tab);
 				}
 				else if (win.tabHistorySelectionHistory[0]) {
-					TabHistory.copyHistory(win.tabHistorySelectionHistory[0], tab);
+					TAB_HISTORY_REDUX.copyHistory(win.tabHistorySelectionHistory[0], tab);
 				}
 			}
 		}
