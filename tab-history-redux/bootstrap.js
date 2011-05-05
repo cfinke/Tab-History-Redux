@@ -69,13 +69,41 @@ var TAB_HISTORY_REDUX = {
 		win.gBrowser.tabContainer.removeEventListener("TabOpen", TAB_HISTORY_REDUX.tabOpen, false);
 	},
 	
-	tabOpen : function (evt) {
+	timer : null,
+	
+	setTimeout : function (callback, timeout, arg1, arg2, arg3, arg4) {
+		var cb = {
+			notify : function () {
+				callback(arg1, arg2, arg3, arg4);
+				TAB_HISTORY_REDUX.timer = null;
+			}
+		};
+		
+		TAB_HISTORY_REDUX.timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+		TAB_HISTORY_REDUX.timer.initWithCallback(cb, timeout, TAB_HISTORY_REDUX.timer.TYPE_ONE_SHOT);
+		return TAB_HISTORY_REDUX.timer;
+	},
+	
+	clearTimeout : function (timer) {
+		if (TAB_HISTORY_REDUX.timer) {
+			TAB_HISTORY_REDUX.timer.cancel();
+			TAB_HISTORY_REDUX.timer = null;
+		}
+	},
+	
+	tabOpen : function (evt, redo) {
 		var tab = evt.target;
 		var win = tab.ownerDocument.defaultView;
+		var tabLabel = null;
 		
-		if (tab.getAttribute("label") == win.gBrowser.mStringBundle.getString("tabs.emptyTabTitle")) {
+		if (tab.getAttribute("label") == (tabLabel = win.gBrowser.mStringBundle.getString("tabs.emptyTabTitle"))) {
 			// The only way to tell if it's a blank tab.
 			// Nothing should be copied for tabs that were opened and intended to be blank.
+			// But the blank tab title might be temporary, if this was a new window that was instead forced into a new tab.
+			
+			if (!redo) {
+				TAB_HISTORY_REDUX.setTimeout(TAB_HISTORY_REDUX.tabOpen, 100, evt, true);
+			}
 		}
 		else {
 			if (!tab.selected) {
@@ -86,10 +114,10 @@ var TAB_HISTORY_REDUX = {
 			else {
 				if (tab == win.tabHistorySelectionHistory[0]) {
 					// The tab is already selected.
-					TAB_HISTORY_REDUX.copyHistory(win.tabHistorySelectionHistory[1], tab);
+					TAB_HISTORY_REDUX.copyHistory(win, win.tabHistorySelectionHistory[1], tab);
 				}
 				else if (win.tabHistorySelectionHistory[0]) {
-					TAB_HISTORY_REDUX.copyHistory(win.tabHistorySelectionHistory[0], tab);
+					TAB_HISTORY_REDUX.copyHistory(win, win.tabHistorySelectionHistory[0], tab);
 				}
 			}
 		}
@@ -110,7 +138,7 @@ var TAB_HISTORY_REDUX = {
 		
 		// This line enables .addEntry
 		childHistory.QueryInterface(Components.interfaces.nsISHistoryInternal);
-	
+		
 		for (var i = 0, _len = parentHistory.index + 1; i < _len; i++) {
 			if (parentHistory.getEntryAtIndex(i, false).URI.scheme != 'about') {
 				childHistory.addEntry(parentHistory.getEntryAtIndex(i, false), true);
